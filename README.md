@@ -1,122 +1,126 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<title>AI phân chia công việc (AI thật)</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f3f4f6;
-  padding: 20px;
-}
-textarea, button {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-}
-button {
-  background: #2563eb;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-.result {
-  background: white;
-  padding: 15px;
-  margin-top: 15px;
-  border-radius: 6px;
-}
-.error {
-  color: red;
-  margin-top: 10px;
-}
-</style>
+  <meta charset="UTF-8">
+  <title>Chia công việc tự động</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 30px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .box {
+      background: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+    }
+    button {
+      padding: 10px 20px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    .result {
+      background: #eef;
+      padding: 15px;
+      border-radius: 8px;
+    }
+  </style>
 </head>
-
 <body>
 
-<h2>Danh sách thành viên</h2>
-<textarea id="people">
-An | tỉ mỉ, cẩn thận, thích viết
-Bình | hướng ngoại, giao tiếp tốt
-Chi | sáng tạo, nhiều ý tưởng
-</textarea>
+<h1>Chia công việc tự động</h1>
 
-<h2>Danh sách công việc</h2>
-<textarea id="tasks">
-Viết báo cáo | cần tỉ mỉ
-Điều phối nhóm | cần giao tiếp
-Trang trí | cần sáng tạo
-</textarea>
+<div class="box">
+  <h3>Nhập thông tin từng người</h3>
+  <input id="name" placeholder="Tên">
+  <input id="personality" placeholder="Tính cách (ví dụ: cẩn thận, năng động)">
+  <input id="hobby" placeholder="Sở thích (ví dụ: thiết kế, nói chuyện)">
+  <button onclick="addPerson()">Thêm người</button>
+</div>
 
-<button onclick="runAI()">AI phân tích & phân công</button>
+<div class="box">
+  <button onclick="assignJobs()">Chia công việc</button>
+</div>
 
-<div id="status"></div>
-<div id="output" class="result"></div>
+<div class="box result" id="output"></div>
 
 <script>
-const API_KEY = "DÁN_API_KEY_CỦA_M_VÀO_ĐÂY";
-const API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=" + API_KEY;
+  const people = [];
 
-async function runAI() {
-  const people = document.getElementById("people").value.trim();
-  const tasks = document.getElementById("tasks").value.trim();
-  const status = document.getElementById("status");
-  const output = document.getElementById("output");
+  const jobs = [
+    { name: "Thiết kế", keywords: ["thiết kế", "sáng tạo", "mỹ thuật"] },
+    { name: "Thuyết trình", keywords: ["nói", "giao tiếp", "tự tin"] },
+    { name: "Lập trình", keywords: ["logic", "code", "máy tính"] },
+    { name: "Quản lý", keywords: ["cẩn thận", "tổ chức", "quản lý"] }
+  ];
 
-  status.innerText = "AI đang phân tích...";
-  output.innerHTML = "";
+  function addPerson() {
+    const name = document.getElementById("name").value;
+    const personality = document.getElementById("personality").value;
+    const hobby = document.getElementById("hobby").value;
 
-  const prompt = `
-Bạn là trưởng nhóm.
+    if (!name) {
+      alert("Chưa nhập tên");
+      return;
+    }
 
-Thành viên:
-${people}
-
-Công việc:
-${tasks}
-
-Hãy phân công công việc hợp lý, có giải thích.
-Trình bày bằng HTML, không markdown.
-`;
-
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          { role: "user", parts: [{ text: prompt }] }
-        ]
-      })
+    people.push({
+      name,
+      text: (personality + " " + hobby).toLowerCase()
     });
 
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error("HTTP " + res.status + ": " + errText);
-    }
+    document.getElementById("name").value = "";
+    document.getElementById("personality").value = "";
+    document.getElementById("hobby").value = "";
 
-    const data = await res.json();
-    console.log("API response:", data);
-
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!text) {
-      throw new Error("AI không trả nội dung");
-    }
-
-    output.innerHTML = text;
-    status.innerText = "Hoàn thành";
-
-  } catch (err) {
-    console.error(err);
-    status.innerHTML = "";
-    output.innerHTML =
-      "<div class='error'>❌ Lỗi: " + err.message + "</div>";
+    alert("Đã thêm " + name);
   }
-}
+
+  function assignJobs() {
+    const output = document.getElementById("output");
+    output.innerHTML = "";
+
+    const usedPeople = new Set();
+
+    jobs.forEach(job => {
+      let bestPerson = null;
+      let bestScore = -1;
+
+      people.forEach(person => {
+        if (usedPeople.has(person.name)) return;
+
+        let score = 0;
+        job.keywords.forEach(k => {
+          if (person.text.includes(k)) score++;
+        });
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestPerson = person;
+        }
+      });
+
+      if (bestPerson) {
+        usedPeople.add(bestPerson.name);
+        output.innerHTML += `<p><b>${job.name}</b>: ${bestPerson.name}</p>`;
+      }
+    });
+
+    people.forEach(p => {
+      if (!usedPeople.has(p.name)) {
+        output.innerHTML += `<p><b>Hỗ trợ chung</b>: ${p.name}</p>`;
+      }
+    });
+  }
 </script>
 
 </body>
