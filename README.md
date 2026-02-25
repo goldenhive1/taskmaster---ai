@@ -2,107 +2,119 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Phân công công việc thông minh</title>
+<title>AI phân chia công việc nhóm</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 body {
-    font-family: Arial, sans-serif;
-    background: #f2f4f7;
-    padding: 20px;
+  font-family: Arial, sans-serif;
+  background: #f3f4f6;
+  padding: 20px;
 }
-textarea, input, button {
-    width: 100%;
-    margin-top: 10px;
-    padding: 8px;
+textarea, button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
 }
 button {
-    background: #007bff;
-    color: white;
-    border: none;
-    cursor: pointer;
+  background: #2563eb;
+  color: white;
+  border: none;
+  cursor: pointer;
 }
-.result {
-    margin-top: 20px;
-    background: white;
-    padding: 15px;
+.card {
+  background: white;
+  padding: 15px;
+  margin-top: 15px;
+  border-radius: 6px;
+}
+.loading {
+  margin-top: 10px;
+  color: #555;
 }
 </style>
 </head>
+
 <body>
 
-<h2>Nhập danh sách người</h2>
-<p>Mỗi dòng: Tên | Tính cách | Sở thích</p>
-<textarea id="peopleInput" placeholder="An | tỉ mỉ, cẩn thận | đọc sách
-Bình | hướng ngoại | giao tiếp"></textarea>
+<h2>Danh sách thành viên</h2>
+<p>Mỗi dòng: Tên | mô tả tính cách, sở thích</p>
+<textarea id="peopleInput">
+An | tỉ mỉ, cẩn thận, thích viết
+Bình | hướng ngoại, giao tiếp tốt
+Chi | sáng tạo, nhiều ý tưởng
+</textarea>
 
-<h2>Nhập danh sách công việc</h2>
-<p>Mỗi dòng: Tên việc | Yêu cầu</p>
-<textarea id="taskInput" placeholder="Viết báo cáo | tỉ mỉ
-Thuyết trình | giao tiếp"></textarea>
+<h2>Danh sách công việc</h2>
+<p>Mỗi dòng: Tên công việc | mô tả yêu cầu</p>
+<textarea id="taskInput">
+Viết báo cáo tổng hợp | cần tỉ mỉ và logic
+Điều phối nhóm | cần giao tiếp
+Trang trí sản phẩm | cần sáng tạo
+</textarea>
 
-<button onclick="assignTasks()">Phân công</button>
+<button onclick="runAI()">AI phân tích & phân công</button>
 
-<div class="result" id="result"></div>
+<div id="loading" class="loading"></div>
+<div id="result"></div>
 
 <script>
-function assignTasks() {
-    const peopleLines = peopleInput.value.trim().split("\n");
-    const taskLines = taskInput.value.trim().split("\n");
-    const resultDiv = document.getElementById("result");
+const API_KEY = "YOUR_GEMINI_API_KEY";
+const API_URL =
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + API_KEY;
 
-    if (!peopleLines[0] || !taskLines[0]) {
-        alert("Phải nhập người và công việc!");
-        return;
-    }
+async function runAI() {
+  const people = document.getElementById("peopleInput").value.trim();
+  const tasks = document.getElementById("taskInput").value.trim();
+  const resultDiv = document.getElementById("result");
+  const loadingDiv = document.getElementById("loading");
 
-    // xử lý người
-    let people = peopleLines.map(line => {
-        let [name, personality, hobby] = line.split("|").map(x => x.trim());
-        return {
-            name,
-            traits: (personality + "," + hobby).toLowerCase(),
-            tasks: []
-        };
+  if (!people || !tasks) {
+    alert("Nhập đầy đủ dữ liệu");
+    return;
+  }
+
+  loadingDiv.innerText = "AI đang phân tích nhóm...";
+  resultDiv.innerHTML = "";
+
+  const prompt = `
+Bạn là trưởng nhóm giàu kinh nghiệm.
+
+Danh sách thành viên:
+${people}
+
+Danh sách công việc:
+${tasks}
+
+Yêu cầu:
+- Phân tích điểm mạnh từng người
+- Phân chia công việc hợp lý
+- Không cần tối ưu tuyệt đối, chấp nhận đánh đổi
+- Có thể một người làm nhiều việc
+- Giải thích ngắn gọn lý do phân công
+
+Trình bày kết quả bằng HTML, mỗi người một mục rõ ràng.
+Không dùng markdown.
+`;
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
     });
 
-    // xử lý công việc
-    let tasks = taskLines.map(line => {
-        let [taskName, requirement] = line.split("|").map(x => x.trim());
-        return {
-            name: taskName,
-            requirement: requirement.toLowerCase()
-        };
-    });
+    const data = await res.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    // phân việc
-    tasks.forEach(task => {
-        let bestPerson = null;
-        let bestScore = -1;
-
-        people.forEach(person => {
-            let score = 0;
-
-            if (person.traits.includes(task.requirement)) {
-                score += 2;
-            }
-
-            score -= person.tasks.length * 0.5;
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestPerson = person;
-            }
-        });
-
-        bestPerson.tasks.push(task.name);
-    });
-
-    // hiển thị
-    resultDiv.innerHTML = "<h3>Kết quả phân công</h3>";
-    people.forEach(p => {
-        resultDiv.innerHTML += `<b>${p.name}</b>: ${
-            p.tasks.length ? p.tasks.join(", ") : "Không có việc"
-        }<br>`;
-    });
+    resultDiv.innerHTML = text || "<p>AI không trả về kết quả.</p>";
+  } catch (e) {
+    resultDiv.innerHTML =
+      "<p style='color:red'>Lỗi kết nối AI hoặc API key.</p>";
+  } finally {
+    loadingDiv.innerText = "";
+  }
 }
 </script>
 
