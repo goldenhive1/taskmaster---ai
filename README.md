@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>AI phân chia công việc nhóm</title>
+<title>AI phân chia công việc (AI thật)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 body {
@@ -21,15 +21,15 @@ button {
   border: none;
   cursor: pointer;
 }
-.card {
+.result {
   background: white;
   padding: 15px;
   margin-top: 15px;
   border-radius: 6px;
 }
-.loading {
+.error {
+  color: red;
   margin-top: 10px;
-  color: #555;
 }
 </style>
 </head>
@@ -37,63 +37,49 @@ button {
 <body>
 
 <h2>Danh sách thành viên</h2>
-<p>Mỗi dòng: Tên | mô tả tính cách, sở thích</p>
-<textarea id="peopleInput">
+<textarea id="people">
 An | tỉ mỉ, cẩn thận, thích viết
 Bình | hướng ngoại, giao tiếp tốt
 Chi | sáng tạo, nhiều ý tưởng
 </textarea>
 
 <h2>Danh sách công việc</h2>
-<p>Mỗi dòng: Tên công việc | mô tả yêu cầu</p>
-<textarea id="taskInput">
-Viết báo cáo tổng hợp | cần tỉ mỉ và logic
+<textarea id="tasks">
+Viết báo cáo | cần tỉ mỉ
 Điều phối nhóm | cần giao tiếp
-Trang trí sản phẩm | cần sáng tạo
+Trang trí | cần sáng tạo
 </textarea>
 
 <button onclick="runAI()">AI phân tích & phân công</button>
 
-<div id="loading" class="loading"></div>
-<div id="result"></div>
+<div id="status"></div>
+<div id="output" class="result"></div>
 
 <script>
-const API_KEY = "YOUR_GEMINI_API_KEY";
+const API_KEY = "DÁN_API_KEY_CỦA_M_VÀO_ĐÂY";
 const API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + API_KEY;
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=" + API_KEY;
 
 async function runAI() {
-  const people = document.getElementById("peopleInput").value.trim();
-  const tasks = document.getElementById("taskInput").value.trim();
-  const resultDiv = document.getElementById("result");
-  const loadingDiv = document.getElementById("loading");
+  const people = document.getElementById("people").value.trim();
+  const tasks = document.getElementById("tasks").value.trim();
+  const status = document.getElementById("status");
+  const output = document.getElementById("output");
 
-  if (!people || !tasks) {
-    alert("Nhập đầy đủ dữ liệu");
-    return;
-  }
-
-  loadingDiv.innerText = "AI đang phân tích nhóm...";
-  resultDiv.innerHTML = "";
+  status.innerText = "AI đang phân tích...";
+  output.innerHTML = "";
 
   const prompt = `
-Bạn là trưởng nhóm giàu kinh nghiệm.
+Bạn là trưởng nhóm.
 
-Danh sách thành viên:
+Thành viên:
 ${people}
 
-Danh sách công việc:
+Công việc:
 ${tasks}
 
-Yêu cầu:
-- Phân tích điểm mạnh từng người
-- Phân chia công việc hợp lý
-- Không cần tối ưu tuyệt đối, chấp nhận đánh đổi
-- Có thể một người làm nhiều việc
-- Giải thích ngắn gọn lý do phân công
-
-Trình bày kết quả bằng HTML, mỗi người một mục rõ ràng.
-Không dùng markdown.
+Hãy phân công công việc hợp lý, có giải thích.
+Trình bày bằng HTML, không markdown.
 `;
 
   try {
@@ -101,19 +87,34 @@ Không dùng markdown.
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
+        contents: [
+          { role: "user", parts: [{ text: prompt }] }
+        ]
       })
     });
 
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error("HTTP " + res.status + ": " + errText);
+    }
+
     const data = await res.json();
+    console.log("API response:", data);
+
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    resultDiv.innerHTML = text || "<p>AI không trả về kết quả.</p>";
-  } catch (e) {
-    resultDiv.innerHTML =
-      "<p style='color:red'>Lỗi kết nối AI hoặc API key.</p>";
-  } finally {
-    loadingDiv.innerText = "";
+    if (!text) {
+      throw new Error("AI không trả nội dung");
+    }
+
+    output.innerHTML = text;
+    status.innerText = "Hoàn thành";
+
+  } catch (err) {
+    console.error(err);
+    status.innerHTML = "";
+    output.innerHTML =
+      "<div class='error'>❌ Lỗi: " + err.message + "</div>";
   }
 }
 </script>
