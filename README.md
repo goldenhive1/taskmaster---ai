@@ -2,146 +2,122 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <title>AI Phân Chia Công Việc Nhóm</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Tailwind CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Phân chia công việc nhóm bằng AI</title>
 
   <style>
-    .loading {
-      border-top-color: #3b82f6;
-      animation: spin 1.2s linear infinite;
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 20px;
     }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #4a6cf7;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 15px;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      background: #4a6cf7;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #3b5be0;
+    }
+
+    .warning {
+      margin-top: 15px;
+      color: #e67e22;
+      font-size: 14px;
+    }
+
+    .result {
+      margin-top: 20px;
+      background: #f0f3ff;
+      padding: 15px;
+      border-radius: 10px;
+      white-space: pre-line;
     }
   </style>
 </head>
 
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+<body>
+  <div class="container">
+    <h1>Công Việc Nhóm</h1>
 
-  <div class="w-full max-w-3xl bg-white rounded-xl shadow-lg p-6">
+    <label>Chủ đề thuyết trình / dự án</label>
+    <input id="topic" placeholder="Ví dụ: Ứng dụng của AI trong dạy học" />
 
-    <h1 class="text-2xl font-bold text-center text-blue-600 mb-6">
-      🤖 Trợ Lý AI Phân Chia Công Việc Nhóm
-    </h1>
+    <label>Danh sách thành viên & mô tả</label>
+    <textarea id="description" rows="5" placeholder="Tên + điểm mạnh, điểm yếu..."></textarea>
 
-    <!-- Chủ đề -->
-    <div class="mb-4">
-      <label class="block font-semibold mb-1">
-        Chủ đề thuyết trình / dự án
-      </label>
-      <input id="topic" type="text"
-        placeholder="Ví dụ: Ứng dụng AI trong giáo dục"
-        class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none">
-    </div>
+    <button onclick="analyze()">AI PHÂN TÍCH & GỢI Ý</button>
 
-    <!-- Thành viên -->
-    <div class="mb-4">
-      <label class="block font-semibold mb-1">
-        Danh sách thành viên & mô tả
-      </label>
-      <textarea id="members" rows="5"
-        placeholder="- Nam: Tự tin, nói tốt, thuyết trình ổn
-- Lan: Tỉ mỉ, tìm tài liệu giỏi
-- Minh: Thiết kế đẹp, biết Canva"
-        class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none"></textarea>
-      <p class="text-xs text-gray-500 italic mt-1">
-        * Mô tả càng chi tiết, AI phân tích càng chính xác
-      </p>
-    </div>
-
-    <!-- Nút -->
-    <button id="btnSubmit" onclick="distributeTasks()"
-      class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">
-      AI PHÂN TÍCH & GỢI Ý
-    </button>
-
-    <!-- Loading -->
-    <div id="loadingArea" class="hidden flex flex-col items-center mt-6">
-      <div class="loading w-10 h-10 border-4 border-gray-200 rounded-full mb-2"></div>
-      <p class="text-gray-600">AI đang phân tích nhóm...</p>
-    </div>
-
-    <!-- Kết quả -->
-    <div id="resultArea" class="hidden mt-8">
-      <h2 class="text-xl font-bold border-b pb-2 mb-4">
-        📌 Gợi ý phân chia công việc
-      </h2>
-      <div id="aiResponse" class="space-y-4 text-gray-700 leading-relaxed"></div>
-    </div>
-
+    <div id="warning" class="warning"></div>
+    <div id="result" class="result"></div>
   </div>
 
-<script>
-  // ⚠️ DEMO ONLY – KHÔNG CHIA SẺ KEY CÔNG KHAI
-  const API_KEY = "YOUR_API_KEY_HERE";
-  const API_URL =
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + API_KEY;
+  <script>
+    function analyze() {
+      const topic = document.getElementById("topic").value.trim();
+      const description = document.getElementById("description").value.trim();
+      const warning = document.getElementById("warning");
+      const result = document.getElementById("result");
 
-  async function distributeTasks() {
-    const topic = document.getElementById("topic").value.trim();
-    const members = document.getElementById("members").value.trim();
-    const btn = document.getElementById("btnSubmit");
-    const loading = document.getElementById("loadingArea");
-    const result = document.getElementById("resultArea");
-    const output = document.getElementById("aiResponse");
+      warning.innerText = "";
+      result.innerText = "";
 
-    if (!topic || !members) {
-      alert("Nhập đầy đủ thông tin nhóm và chủ đề nhé!");
-      return;
+      if (!topic || !description) {
+        result.innerText = "❌ Vui lòng nhập đầy đủ thông tin.";
+        return;
+      }
+
+      if (description.length < 40) {
+        warning.innerText = "⚠️ Mô tả hơi ngắn, AI sẽ gợi ý ở mức cơ bản.";
+      }
+
+      // Giả lập AI phân tích
+      result.innerText =
+        "📌 Gợi ý phân chia công việc:\n\n" +
+        "• Người giỏi thuyết trình: Trình bày nội dung chính\n" +
+        "• Người sáng tạo: Thiết kế slide / Canva\n" +
+        "• Người thích tìm tòi: Nghiên cứu nội dung, ví dụ thực tế\n" +
+        "• Người tổng hợp tốt: Góp ý, chỉnh sửa, hoàn thiện bài\n\n" +
+        "💡 Mẹo: Phân công linh hoạt, có thể 1 người đảm nhiệm nhiều vai trò.";
     }
-
-    btn.disabled = true;
-    loading.classList.remove("hidden");
-    result.classList.add("hidden");
-
-    const prompt = `
-Bạn là chuyên gia quản lý dự án và phân tích tâm lý nhóm.
-
-Dự án: "${topic}"
-
-Thành viên:
-${members}
-
-Yêu cầu:
-- Phân tích điểm mạnh của từng người.
-- Gợi ý nhiều công việc phù hợp, không cố định vai trò.
-- Có thể 1 người làm nhiều việc nếu hợp.
-- Giải thích ngắn gọn lý do.
-
-Trình bày bằng HTML (<strong>, <ul>, <li>, <p>).
-Không dùng markdown.
-`;
-
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        })
-      });
-
-      const data = await res.json();
-      const text =
-        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "<p>AI chưa trả về kết quả. Hãy thử mô tả chi tiết hơn.</p>";
-
-      output.innerHTML = text;
-      result.classList.remove("hidden");
-
-    } catch (err) {
-      output.innerHTML =
-        "<p class='text-red-500'>Lỗi kết nối AI. Kiểm tra API key hoặc mạng.</p>";
-      result.classList.remove("hidden");
-    } finally {
-      btn.disabled = false;
-      loading.classList.add("hidden");
-    }
-  }
-</script>
-
+  </script>
 </body>
 </html>
