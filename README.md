@@ -1,231 +1,114 @@
-import React, { useState } from "react";
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Phân Chia Công Việc Nhóm</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
 
-export default function SmartPlannerApp() {
-  const [step, setStep] = useState("landing");
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
 
-  const [project, setProject] = useState({
-    name: "",
-    description: "",
+<div class="bg-white w-full max-w-4xl rounded-xl shadow-lg p-6">
+
+  <h1 class="text-2xl font-bold text-center text-blue-600 mb-6">
+    🤖 AI Phân Chia Công Việc Nhóm
+  </h1>
+
+  <!-- Công việc lớn -->
+  <div class="mb-4">
+    <label class="font-semibold">Công việc lớn</label>
+    <input id="task" type="text"
+      placeholder="Ví dụ: Tổ chức sự kiện"
+      class="w-full border p-2 rounded-lg mt-1">
+  </div>
+
+  <!-- Thành viên -->
+  <div class="mb-4">
+    <label class="font-semibold">Danh sách thành viên</label>
+    <textarea id="members" rows="6"
+      placeholder="- Minh: năng động, giao tiếp tốt, thích nói chuyện
+- Lan: cẩn thận, thích sắp xếp
+- Ngọc: sáng tạo, thích vẽ
+- Huy: logic, thích máy tính"
+      class="w-full border p-2 rounded-lg mt-1"></textarea>
+  </div>
+
+  <button onclick="runAI()"
+    class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700">
+    PHÂN CHIA CÔNG VIỆC
+  </button>
+
+  <div id="result" class="hidden mt-6">
+    <h2 class="font-bold text-lg mb-3">📌 Kết quả phân chia</h2>
+    <div id="output" class="space-y-3 text-gray-700"></div>
+  </div>
+
+</div>
+
+<script>
+function runAI() {
+  const task = document.getElementById("task").value.trim();
+  const membersText = document.getElementById("members").value.trim();
+  const output = document.getElementById("output");
+  const result = document.getElementById("result");
+
+  if (!task || !membersText) {
+    alert("Nhập đầy đủ công việc và thành viên nhé!");
+    return;
+  }
+
+  const members = membersText.split("\n").map(line => {
+    const parts = line.split(":");
+    return {
+      name: parts[0]?.trim(),
+      desc: parts[1]?.toLowerCase() || ""
+    };
   });
 
-  const [members, setMembers] = useState([]);
-  const [memberForm, setMemberForm] = useState({
-    name: "",
-    personality: "",
-    interest: "",
-    strength: "",
-    weakness: "",
+  // Tự chia việc nhỏ theo công việc lớn
+  const subTasks = [
+    "Lên ý tưởng và định hướng",
+    "Lập kế hoạch và timeline",
+    "Chuẩn bị nội dung",
+    "Thiết kế hình ảnh",
+    "Truyền thông và liên hệ",
+    "Hậu cần và chuẩn bị",
+    "Điều phối và theo dõi",
+    "Tổng kết và báo cáo"
+  ];
+
+  output.innerHTML = "";
+
+  subTasks.forEach(sub => {
+    let bestMatch = members[0];
+    let maxScore = 0;
+
+    members.forEach(m => {
+      let score = 0;
+      if (sub.includes("ý tưởng") && m.desc.includes("sáng tạo")) score++;
+      if (sub.includes("kế hoạch") && m.desc.includes("cẩn thận")) score++;
+      if (sub.includes("thiết kế") && m.desc.includes("vẽ")) score++;
+      if (sub.includes("truyền thông") && m.desc.includes("giao tiếp")) score++;
+      if (sub.includes("hậu cần") && m.desc.includes("sắp xếp")) score++;
+      if (sub.includes("báo cáo") && m.desc.includes("máy tính")) score++;
+      if (score > maxScore) {
+        maxScore = score;
+        bestMatch = m;
+      }
+    });
+
+    output.innerHTML += `
+      <div class="border rounded-lg p-3">
+        <strong>${sub}</strong><br>
+        👉 Phụ trách: <b>${bestMatch.name}</b>
+      </div>
+    `;
   });
 
-  const [result, setResult] = useState([]);
-
-  // ===== AI MOCK (sau này thay API thật) =====
-  const runAI = () => {
-    const baseTasks = [
-      "Lập kế hoạch tổng thể",
-      "Nội dung & truyền thông",
-      "Thiết kế & hình ảnh",
-      "Theo dõi & báo cáo tiến độ",
-    ];
-
-    const output = members.map((m, i) => ({
-      member: m.name,
-      task: baseTasks[i % baseTasks.length],
-      reason: `Phù hợp với tính cách ${m.personality} và sở thích ${m.interest}`,
-    }));
-
-    setResult(output);
-    setStep("result");
-  };
-
-  // ===== LANDING =====
-  if (step === "landing") {
-    return (
-      <div className="min-h-screen bg-white text-blue-900">
-        <header className="max-w-6xl mx-auto px-10 py-20 grid md:grid-cols-2 gap-12 items-center">
-          <div>
-            <h1 className="text-5xl font-bold leading-tight mb-6">
-              AI Smart Task Planner
-            </h1>
-            <p className="text-slate-600 mb-6">
-              Công cụ hỗ trợ phân chia công việc thông minh dựa trên
-              tính cách, sở thích và đặc điểm của từng thành viên.
-            </p>
-            <p className="text-slate-500 mb-10">
-              Người dùng chỉ cần nhập thông tin – việc phân tích và
-              chia việc đã có AI xử lý.
-            </p>
-            <button
-              onClick={() => setStep("project")}
-              className="bg-blue-600 text-white px-8 py-4 rounded-lg text-lg hover:bg-blue-700 transition"
-            >
-              Bắt đầu ngay
-            </button>
-          </div>
-
-          <div>
-            <img
-              src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d"
-              alt="Teamwork"
-              className="rounded-2xl shadow-lg"
-            />
-          </div>
-        </header>
-      </div>
-    );
-  }
-
-  // ===== STEP 1: PROJECT =====
-  if (step === "project") {
-    return (
-      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
-        <div className="bg-white p-10 rounded-xl shadow-lg w-full max-w-2xl">
-          <h2 className="text-2xl font-bold mb-6">Bước 1: Công việc chính</h2>
-
-          <input
-            className="w-full border p-3 rounded mb-4"
-            placeholder="Tên công việc (VD: Tổ chức sự kiện)"
-            value={project.name}
-            onChange={(e) =>
-              setProject({ ...project, name: e.target.value })
-            }
-          />
-
-          <textarea
-            className="w-full border p-3 rounded mb-6"
-            placeholder="Mô tả quy mô, thời gian, mục tiêu..."
-            rows={4}
-            value={project.description}
-            onChange={(e) =>
-              setProject({ ...project, description: e.target.value })
-            }
-          />
-
-          <div className="flex justify-end">
-            <button
-              onClick={() => setStep("members")}
-              className="bg-blue-600 text-white px-6 py-3 rounded"
-            >
-              Tiếp tục
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ===== STEP 2: MEMBERS =====
-  if (step === "members") {
-    return (
-      <div className="min-h-screen bg-white p-10 max-w-5xl mx-auto">
-        <h2 className="text-2xl font-bold mb-6">
-          Bước 2: Thông tin thành viên
-        </h2>
-
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <input
-            className="border p-2 rounded"
-            placeholder="Tên *"
-            value={memberForm.name}
-            onChange={(e) =>
-              setMemberForm({ ...memberForm, name: e.target.value })
-            }
-          />
-          <input
-            className="border p-2 rounded"
-            placeholder="Tính cách *"
-            value={memberForm.personality}
-            onChange={(e) =>
-              setMemberForm({ ...memberForm, personality: e.target.value })
-            }
-          />
-          <input
-            className="border p-2 rounded"
-            placeholder="Sở thích *"
-            value={memberForm.interest}
-            onChange={(e) =>
-              setMemberForm({ ...memberForm, interest: e.target.value })
-            }
-          />
-          <input
-            className="border p-2 rounded"
-            placeholder="Điểm mạnh (không bắt buộc)"
-            value={memberForm.strength}
-            onChange={(e) =>
-              setMemberForm({ ...memberForm, strength: e.target.value })
-            }
-          />
-          <input
-            className="border p-2 rounded col-span-2"
-            placeholder="Điểm yếu (không bắt buộc)"
-            value={memberForm.weakness}
-            onChange={(e) =>
-              setMemberForm({ ...memberForm, weakness: e.target.value })
-            }
-          />
-        </div>
-
-        <div className="flex gap-4">
-          <button
-            onClick={() => {
-              if (
-                memberForm.name &&
-                memberForm.personality &&
-                memberForm.interest
-              ) {
-                setMembers([...members, memberForm]);
-                setMemberForm({
-                  name: "",
-                  personality: "",
-                  interest: "",
-                  strength: "",
-                  weakness: "",
-                });
-              }
-            }}
-            className="border border-blue-600 text-blue-600 px-4 py-2 rounded"
-          >
-            Thêm thành viên
-          </button>
-
-          <button
-            onClick={runAI}
-            className="bg-blue-600 text-white px-6 py-2 rounded"
-          >
-            AI phân tích & chia việc
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ===== RESULT =====
-  if (step === "result") {
-    return (
-      <div className="min-h-screen bg-blue-50 p-10 max-w-6xl mx-auto">
-        <h2 className="text-3xl font-bold text-center mb-10">
-          Kết quả phân công công việc
-        </h2>
-
-        <table className="w-full bg-white border rounded-lg overflow-hidden">
-          <thead className="bg-blue-100">
-            <tr>
-              <th className="p-4 border">Thành viên</th>
-              <th className="p-4 border">Công việc</th>
-              <th className="p-4 border">Lý do phân công</th>
-            </tr>
-          </thead>
-          <tbody>
-            {result.map((r, i) => (
-              <tr key={i}>
-                <td className="p-4 border">{r.member}</td>
-                <td className="p-4 border">{r.task}</td>
-                <td className="p-4 border text-slate-600">{r.reason}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
+  result.classList.remove("hidden");
 }
+</script>
+
+</body>
+</html>
